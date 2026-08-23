@@ -1,0 +1,1382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
+<meta name="theme-color" content="#0a0d13" />
+<title>Kingdom Ledger · Rise of Kingdoms Reward Roll</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js" crossorigin="anonymous"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js" crossorigin="anonymous"></script>
+<style>
+/* =========================================================
+   TOKENS
+   Concept: a war-room ledger. Dark iron/steel chrome holds
+   the interface; the actual reward roll renders as a
+   parchment scroll. A wax seal marks identity (crest, kingdom
+   code, player avatars); alliances read as small hanging
+   banner tags, color-coded per alliance for fast scanning.
+   ========================================================= */
+:root{
+  --ink-900:#0a0d13;
+  --ink-850:#0d111a;
+  --ink-800:#111725;
+  --ink-700:#161e2e;
+  --steel-600:#212b3d;
+  --steel-500:#2c384e;
+  --steel-400:#425067;
+  --steel-300:#5c6d87;
+
+  --gold-700:#8a6a16;
+  --gold-600:#b0891f;
+  --gold-500:#c9a227;
+  --gold-400:#dab84a;
+  --gold-300:#e8c766;
+  --gold-glow:rgba(201,162,39,.30);
+
+  --parchment-100:#f6efdb;
+  --parchment-200:#ecdfb9;
+  --parchment-300:#ddc99a;
+  --ink-on-parchment:#2c2113;
+  --ink-on-parchment-soft:#5b4a30;
+
+  --ember-500:#b3432b;
+  --ember-100:rgba(179,67,43,.16);
+  --moss-500:#4f7a52;
+  --moss-100:rgba(79,122,82,.16);
+  --azure-500:#3f6f8a;
+  --plum-500:#7a4a6b;
+
+  --text-100:#f2efe8;
+  --text-300:#b9c2d0;
+  --text-500:#7c8aa0;
+  --text-600:#5b6a80;
+
+  --font-display:'Cinzel',serif;
+  --font-body:'Inter',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+
+  --radius-lg:16px;
+  --radius-md:10px;
+  --radius-sm:7px;
+  --touch:44px;
+
+  --sp-1:clamp(4px,1vw,6px);
+  --sp-2:clamp(8px,1.8vw,12px);
+  --sp-3:clamp(12px,2.6vw,18px);
+  --sp-4:clamp(16px,3.4vw,24px);
+  --sp-5:clamp(22px,4.6vw,34px);
+  --sp-6:clamp(30px,6vw,48px);
+
+  --fs-xs:clamp(10.5px,1.9vw,11.5px);
+  --fs-sm:clamp(12px,2.1vw,13px);
+  --fs-base:clamp(13.5px,2.3vw,15px);
+  --fs-md:clamp(15px,2.6vw,17px);
+  --fs-lg:clamp(18px,3.6vw,22px);
+  --fs-xl:clamp(22px,4.8vw,29px);
+  --fs-2xl:clamp(26px,6.4vw,40px);
+
+  --ease:cubic-bezier(.22,.9,.32,1);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  font-family:var(--font-body);
+  background:var(--ink-900);
+  background-image:
+    radial-gradient(ellipse 900px 500px at 20% -10%, rgba(201,162,39,.07), transparent 60%),
+    radial-gradient(ellipse 700px 500px at 100% 0%, rgba(63,111,138,.08), transparent 55%),
+    var(--ink-900);
+  color:var(--text-100);
+  min-height:100vh;
+  line-height:1.5;
+  font-size:var(--fs-base);
+  overflow-x:hidden;
+  overscroll-behavior-y:none;
+  padding-left:env(safe-area-inset-left);
+  padding-right:env(safe-area-inset-right);
+}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--steel-400);border-radius:3px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.001ms !important;animation-iteration-count:1 !important;transition-duration:.001ms !important;}
+}
+
+:focus-visible{outline:2px solid var(--gold-400);outline-offset:2px;border-radius:4px;}
+button, input, select{font-family:inherit;}
+
+h1,h2,h3,h4{font-family:var(--font-display);letter-spacing:.03em;}
+
+/* =========================================================
+   SCREENS
+   ========================================================= */
+.screen{display:none;min-height:100vh;animation:screenIn .35s var(--ease);}
+.screen.active{display:flex;}
+@keyframes screenIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes riseUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+@keyframes stamp{
+  0%{transform:scale(.4) rotate(-8deg);opacity:0;}
+  60%{transform:scale(1.08) rotate(2deg);opacity:1;}
+  100%{transform:scale(1) rotate(0);opacity:1;}
+}
+
+/* =========================================================
+   WAX SEAL — signature component
+   ========================================================= */
+.seal{
+  border-radius:50%;
+  background:radial-gradient(circle at 34% 28%, var(--gold-300), var(--gold-600) 68%, var(--gold-700) 100%);
+  border:2px solid var(--gold-700);
+  box-shadow:
+    inset 0 2px 3px rgba(255,255,255,.45),
+    inset 0 -4px 7px rgba(0,0,0,.4),
+    0 6px 14px rgba(0,0,0,.45);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--ink-900);
+  flex-shrink:0;
+}
+.seal svg{display:block;}
+
+/* =========================================================
+   AUTH SCREEN
+   ========================================================= */
+#auth-screen{justify-content:center;align-items:center;padding:var(--sp-4);}
+.auth-container{
+  background:var(--ink-800);
+  border:1px solid var(--steel-500);
+  border-radius:var(--radius-lg);
+  padding:var(--sp-5) var(--sp-5) var(--sp-4);
+  width:100%;max-width:440px;
+  box-shadow:0 20px 60px rgba(0,0,0,.5);
+  animation:riseUp .4s var(--ease);
+  position:relative;
+}
+.auth-container::before{
+  content:'';position:absolute;top:0;left:8%;right:8%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold-500),transparent);
+}
+.auth-crest{text-align:center;margin-bottom:var(--sp-4);}
+.auth-crest .seal{
+  width:56px;height:56px;margin:0 auto var(--sp-2);
+  animation:stamp .55s var(--ease) .1s both;
+}
+.auth-crest h1{
+  font-size:var(--fs-xl);font-weight:900;color:var(--gold-400);
+  text-transform:uppercase;letter-spacing:.08em;
+  text-shadow:0 0 18px var(--gold-glow);
+}
+.auth-crest p{
+  color:var(--text-500);font-size:var(--fs-xs);margin-top:5px;
+  letter-spacing:.14em;text-transform:uppercase;font-family:var(--font-mono);font-weight:600;
+}
+
+.auth-tabs{
+  display:flex;gap:3px;background:var(--ink-900);border-radius:var(--radius-sm);
+  padding:4px;margin-bottom:var(--sp-4);border:1px solid var(--steel-600);
+}
+.auth-tab{
+  flex:1;padding:10px 4px;border:none;background:transparent;color:var(--text-600);
+  font-size:var(--fs-xs);font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  border-radius:6px;cursor:pointer;transition:.18s var(--ease);white-space:nowrap;
+  min-height:var(--touch);display:flex;align-items:center;justify-content:center;
+  touch-action:manipulation;
+}
+.auth-tab.active{
+  background:linear-gradient(155deg,var(--gold-400),var(--gold-600));
+  color:var(--ink-900);box-shadow:0 3px 10px var(--gold-glow);
+}
+.auth-tab:not(.active):hover{color:var(--text-300);background:rgba(255,255,255,.04);}
+
+.form-group{margin-bottom:var(--sp-3);position:relative;}
+.form-group label{
+  display:block;font-size:var(--fs-xs);font-weight:700;color:var(--text-500);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em;
+}
+.form-group input,.form-group select{
+  width:100%;padding:12px 14px;background:var(--ink-900);
+  border:1px solid var(--steel-500);border-radius:var(--radius-sm);
+  color:var(--text-100);font-size:16px;outline:none;transition:.15s var(--ease);
+  min-height:var(--touch);
+}
+.form-group input::placeholder{color:var(--text-600);}
+.form-group input:focus,.form-group select:focus{
+  border-color:var(--gold-500);box-shadow:0 0 0 3px var(--gold-glow);
+}
+.form-group input.code-input{
+  font-family:var(--font-mono);text-transform:uppercase;letter-spacing:6px;
+  font-weight:700;font-size:20px;text-align:center;
+}
+.field-hint{font-size:10.5px;color:var(--text-600);margin-top:5px;line-height:1.4;}
+
+.password-wrapper{position:relative;}
+.password-wrapper input{padding-right:62px;}
+.password-toggle{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:none;color:var(--text-500);cursor:pointer;
+  padding:6px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
+  min-height:36px;min-width:44px;border-radius:6px;transition:.15s;
+  display:flex;align-items:center;justify-content:center;touch-action:manipulation;
+}
+.password-toggle:hover{color:var(--gold-400);background:rgba(255,255,255,.04);}
+
+.code-row{display:flex;gap:8px;align-items:center;}
+.code-row input{flex:1;}
+.btn-gen{
+  flex-shrink:0;padding:0 16px;min-height:var(--touch);
+  border:1px solid var(--steel-400);background:var(--ink-900);color:var(--text-300);
+  border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;
+  letter-spacing:.04em;cursor:pointer;transition:.15s;white-space:nowrap;
+  display:flex;align-items:center;touch-action:manipulation;
+}
+.btn-gen:hover{border-color:var(--gold-500);color:var(--gold-400);}
+
+.btn{
+  padding:12px 18px;border:none;border-radius:var(--radius-sm);
+  font-size:var(--fs-sm);font-weight:700;cursor:pointer;transition:.16s var(--ease);
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  text-transform:uppercase;letter-spacing:.05em;min-height:var(--touch);
+  touch-action:manipulation;
+}
+.btn:active{transform:scale(.97);}
+.btn-primary{
+  background:linear-gradient(155deg,var(--gold-400),var(--gold-600));
+  color:var(--ink-900);box-shadow:0 3px 14px var(--gold-glow);
+}
+.btn-primary:hover{box-shadow:0 5px 20px var(--gold-glow);transform:translateY(-1px);}
+.btn-secondary{background:transparent;color:var(--text-300);border:1px solid var(--steel-400);}
+.btn-secondary:hover{border-color:var(--gold-500);color:var(--gold-400);background:rgba(201,162,39,.05);}
+.btn-danger{background:transparent;color:var(--ember-500);border:1px solid var(--ember-500);}
+.btn-danger:hover{background:var(--ember-100);}
+.btn-sm{padding:8px 13px;font-size:10.5px;min-height:38px;}
+.btn-icon{width:38px;height:38px;padding:0;border-radius:var(--radius-sm);font-size:14px;}
+.btn-full{width:100%;}
+
+.auth-msg{font-size:var(--fs-xs);margin-bottom:var(--sp-2);padding:11px 12px;border-radius:var(--radius-sm);display:none;line-height:1.45;}
+.auth-error{color:#ff9a86;background:var(--ember-100);border-left:3px solid var(--ember-500);}
+.auth-error.show{display:block;animation:riseUp .2s var(--ease);}
+.auth-success{color:#8fd696;background:var(--moss-100);border-left:3px solid var(--moss-500);}
+.auth-success.show{display:block;animation:riseUp .2s var(--ease);}
+
+.auth-footer-text{text-align:center;margin-top:var(--sp-2);font-size:var(--fs-xs);color:var(--text-600);}
+.auth-footer-text a{color:var(--gold-400);text-decoration:none;font-weight:700;}
+.auth-footer-text a:hover{text-decoration:underline;}
+.note{font-size:10.5px;color:var(--text-600);margin-top:12px;text-align:center;line-height:1.5;}
+
+/* =========================================================
+   DASHBOARD HEADER (shared)
+   ========================================================= */
+#dashboard-screen,#public-view-screen{flex-direction:column;}
+.dash-header{
+  background:rgba(13,17,26,.94);border-bottom:1px solid var(--steel-600);
+  padding:12px var(--sp-4);display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;backdrop-filter:blur(14px);
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
+  padding-top:calc(12px + env(safe-area-inset-top));
+}
+.dash-header-left{display:flex;align-items:center;gap:12px;flex:1 1 auto;min-width:0;}
+.dash-header-left .seal{width:38px;height:38px;font-size:15px;}
+.dash-header-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+.dash-header-text h2{
+  font-size:var(--fs-lg);font-weight:700;color:var(--gold-400);letter-spacing:.03em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.code-badge{
+  font-size:11px;font-weight:700;color:var(--gold-300);background:var(--ink-900);
+  padding:3px 11px;border-radius:20px;border:1px solid var(--steel-500);
+  letter-spacing:.14em;font-family:var(--font-mono);display:inline-block;width:fit-content;
+}
+.dash-header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex-shrink:0;}
+.user-badge{
+  display:flex;align-items:center;gap:8px;padding:5px 8px 5px 14px;
+  background:var(--ink-900);border-radius:22px;border:1px solid var(--steel-600);
+  font-size:11.5px;color:var(--text-300);
+}
+.role-tag{
+  padding:3px 10px 6px;font-size:8.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  clip-path:polygon(0 0,100% 0,100% 65%,50% 100%,0 65%);
+}
+.role-tag.owner{background:linear-gradient(155deg,var(--gold-400),var(--gold-600));color:var(--ink-900);}
+.role-tag.guest{background:var(--steel-600);color:var(--text-300);}
+
+/* =========================================================
+   DASHBOARD BODY
+   ========================================================= */
+.dash-body{flex:1;padding:var(--sp-4);max-width:1280px;width:100%;margin:0 auto;}
+
+.stats-row{display:flex;gap:var(--sp-3);width:100%;margin-bottom:var(--sp-3);}
+.stat-card{
+  flex:1;background:var(--ink-800);border:1px solid var(--steel-600);border-radius:var(--radius-md);
+  padding:var(--sp-3) var(--sp-2);text-align:center;transition:.18s var(--ease);
+}
+.stat-card:hover{border-color:var(--gold-600);box-shadow:0 0 0 1px var(--gold-glow) inset;}
+.stat-value{font-size:var(--fs-xl);font-weight:700;color:var(--text-100);font-family:var(--font-display);}
+.stat-label{font-size:9.5px;color:var(--text-600);text-transform:uppercase;letter-spacing:.1em;margin-top:3px;font-weight:600;}
+
+.controls-bar{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:var(--sp-3);
+  background:var(--ink-800);border:1px solid var(--steel-600);border-radius:var(--radius-md);padding:8px;
+}
+.search-box{flex:1;min-width:150px;}
+.search-box input,.filter-select{
+  width:100%;padding:10px 14px;background:var(--ink-900);border:1px solid var(--steel-500);
+  border-radius:var(--radius-sm);color:var(--text-100);font-size:16px;outline:none;
+  min-height:var(--touch);transition:.15s;
+}
+.search-box input::placeholder{color:var(--text-600);}
+.search-box input:focus,.filter-select:focus{border-color:var(--gold-500);box-shadow:0 0 0 3px var(--gold-glow);}
+.filter-select{cursor:pointer;min-width:130px;}
+
+.menu-container{position:relative;}
+.three-dot-btn{
+  background:transparent;border:1px solid var(--steel-500);border-radius:var(--radius-sm);
+  color:var(--text-300);cursor:pointer;padding:6px 12px;font-size:17px;line-height:1;
+  min-height:var(--touch);min-width:var(--touch);display:flex;align-items:center;justify-content:center;
+  transition:.15s;touch-action:manipulation;
+}
+.three-dot-btn:hover{border-color:var(--gold-500);color:var(--gold-400);}
+.download-menu{
+  position:absolute;right:0;top:calc(100% + 6px);background:var(--ink-800);
+  border:1px solid var(--steel-500);border-radius:var(--radius-sm);box-shadow:0 12px 30px rgba(0,0,0,.5);
+  min-width:170px;z-index:200;display:none;padding:4px;
+}
+.download-menu.show{display:block;animation:screenIn .15s var(--ease);}
+.download-menu button{
+  display:block;width:100%;text-align:left;background:none;border:none;color:var(--text-100);
+  padding:10px 14px;font-size:12.5px;cursor:pointer;border-radius:6px;transition:.12s;min-height:40px;
+}
+.download-menu button:hover{background:var(--ink-900);color:var(--gold-400);}
+
+/* =========================================================
+   LEDGER (the reward roll — parchment)
+   ========================================================= */
+.ledger{
+  background:var(--parchment-100);
+  background-image:
+    repeating-linear-gradient(180deg, rgba(44,33,19,.035) 0, rgba(44,33,19,.035) 1px, transparent 1px, transparent 34px);
+  border:1px solid var(--gold-700);
+  border-radius:var(--radius-md);overflow:hidden;
+  box-shadow:0 16px 40px rgba(0,0,0,.35);
+}
+.ledger-header{
+  display:flex;align-items:center;justify-content:space-between;padding:14px var(--sp-4);
+  border-bottom:2px solid var(--gold-600);gap:8px;flex-wrap:wrap;
+  background:linear-gradient(180deg, rgba(44,33,19,.06), transparent);
+}
+.ledger-header h3{
+  font-size:var(--fs-md);font-weight:700;letter-spacing:.04em;color:var(--ink-on-parchment);
+}
+.ledger-header-right{display:flex;align-items:center;gap:8px;}
+.count-badge{
+  background:rgba(44,33,19,.08);padding:4px 12px;border-radius:12px;font-size:10.5px;
+  color:var(--ink-on-parchment-soft);border:1px solid rgba(44,33,19,.18);font-weight:600;
+  font-family:var(--font-mono);
+}
+.ledger .three-dot-btn{border-color:rgba(44,33,19,.25);color:var(--ink-on-parchment-soft);}
+.ledger .three-dot-btn:hover{border-color:var(--gold-700);color:var(--gold-700);}
+.ledger .download-menu{background:var(--parchment-100);border-color:var(--gold-700);}
+.ledger .download-menu button{color:var(--ink-on-parchment);}
+.ledger .download-menu button:hover{background:rgba(44,33,19,.07);color:var(--gold-700);}
+
+.table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;min-width:520px;}
+thead th{
+  background:rgba(44,33,19,.06);padding:10px var(--sp-4);text-align:left;font-size:9.5px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.1em;color:var(--ink-on-parchment-soft);
+  border-bottom:1px solid rgba(44,33,19,.18);white-space:nowrap;
+}
+tbody tr{border-bottom:1px solid rgba(44,33,19,.14);transition:background .12s;}
+tbody tr:hover{background:rgba(44,33,19,.045);}
+tbody td{padding:11px var(--sp-4);font-size:var(--fs-base);vertical-align:middle;color:var(--ink-on-parchment);}
+
+.player-name{
+  color:var(--ink-on-parchment);font-weight:700;cursor:pointer;transition:.12s;white-space:nowrap;
+}
+.player-name:hover{color:var(--gold-700);text-decoration:underline;}
+td[data-col="alliances"]{text-align:right;}
+td[data-col="alliances"] .tag-wrap{justify-content:flex-end;}
+
+/* Banner tag — alliance chip, signature shape */
+.tag-wrap{display:flex;flex-wrap:wrap;gap:6px 5px;align-items:flex-start;}
+.flag-tag{
+  display:inline-block;font-family:var(--font-mono);font-weight:700;font-size:10.5px;
+  letter-spacing:.05em;padding:5px 9px 8px;color:#fff;
+  clip-path:polygon(0 0,100% 0,100% 68%,50% 100%,0 68%);
+  line-height:1.1;white-space:nowrap;
+}
+.flag-tag.empty{
+  background:transparent;color:var(--ink-on-parchment-soft);font-style:italic;font-weight:500;
+  clip-path:none;padding:5px 0;text-transform:none;letter-spacing:0;
+}
+.tag-c0{background:linear-gradient(155deg,var(--gold-400),var(--gold-700));color:var(--ink-900);}
+.tag-c1{background:linear-gradient(155deg,#c85a3c,var(--ember-500));}
+.tag-c2{background:linear-gradient(155deg,#61996a,var(--moss-500));}
+.tag-c3{background:linear-gradient(155deg,#5a94b5,var(--azure-500));}
+.tag-c4{background:linear-gradient(155deg,#966489,var(--plum-500));}
+.tag-c5{background:linear-gradient(155deg,var(--steel-300),var(--steel-500));color:var(--text-100);}
+
+.table-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end;}
+.table-actions .btn{padding:7px 12px;font-size:10px;min-height:32px;}
+.table-actions .btn-secondary{border-color:rgba(44,33,19,.3);color:var(--ink-on-parchment-soft);}
+.table-actions .btn-secondary:hover{border-color:var(--gold-700);color:var(--gold-700);background:rgba(44,33,19,.06);}
+.table-actions .btn-danger{border-color:rgba(179,67,43,.5);}
+
+.empty-state{text-align:center;padding:var(--sp-5) var(--sp-3);color:var(--ink-on-parchment-soft);}
+.empty-state h4{font-size:var(--fs-md);color:var(--ink-on-parchment);margin-bottom:4px;font-family:var(--font-display);}
+.empty-state p{font-size:var(--fs-sm);}
+
+/* =========================================================
+   MODALS
+   ========================================================= */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(6,8,12,.72);backdrop-filter:blur(5px);
+  z-index:1000;justify-content:center;align-items:center;padding:12px;animation:screenIn .2s var(--ease);
+}
+.modal-overlay.active{display:flex;}
+.modal{
+  background:var(--ink-800);border:1px solid var(--steel-500);border-radius:var(--radius-lg);
+  padding:var(--sp-4);width:100%;max-width:440px;box-shadow:0 24px 60px rgba(0,0,0,.55);
+  animation:riseUp .25s var(--ease);max-height:90vh;overflow-y:auto;position:relative;
+}
+.modal::before{
+  content:'';position:absolute;top:0;left:6%;right:6%;height:2px;
+  background:linear-gradient(90deg,transparent,var(--gold-500),transparent);
+}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--sp-3);}
+.modal-head h3{font-size:var(--fs-md);font-weight:700;color:var(--gold-400);}
+.modal-close{
+  background:none;border:none;color:var(--text-500);font-size:24px;cursor:pointer;padding:4px;
+  min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;transition:.15s;touch-action:manipulation;
+}
+.modal-close:hover{color:var(--ember-500);background:var(--ember-100);}
+.modal-body{margin-bottom:var(--sp-3);}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;}
+
+.alliance-row{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.alliance-row input{
+  flex:1;padding:10px 12px;background:var(--ink-900);border:1px solid var(--steel-500);
+  border-radius:var(--radius-sm);color:var(--text-100);font-size:16px;outline:none;
+  min-height:var(--touch);text-transform:uppercase;font-family:var(--font-mono);letter-spacing:.05em;
+  transition:.15s;
+}
+.alliance-row input:focus{border-color:var(--gold-500);box-shadow:0 0 0 2px var(--gold-glow);}
+.alliance-row .remove-btn{
+  background:none;border:none;color:var(--text-600);font-size:20px;cursor:pointer;padding:4px;
+  min-width:40px;min-height:40px;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);transition:.15s;touch-action:manipulation;
+}
+.alliance-row .remove-btn:hover{color:var(--ember-500);background:var(--ember-100);}
+
+.details-body{text-align:center;}
+.details-body .seal{width:66px;height:66px;font-size:26px;margin:0 auto var(--sp-2);}
+.details-body h4{font-size:var(--fs-lg);font-weight:700;margin-bottom:3px;color:var(--text-100);}
+.details-sub{color:var(--text-600);font-size:10.5px;margin-bottom:var(--sp-3);font-family:var(--font-mono);}
+.details-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:6px;}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width:699px){
+  thead{display:none;}
+  .table-wrapper{overflow-x:visible;}
+  table{min-width:0;display:block;}
+  tbody{display:block;padding:0 var(--sp-2) var(--sp-2);}
+  tbody tr{
+    display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;row-gap:8px;
+    border:1px solid rgba(44,33,19,.18);border-radius:var(--radius-sm);
+    margin-top:var(--sp-2);padding:12px 14px;background:rgba(44,33,19,.025);
+  }
+  tbody td{border:none;padding:0;font-size:var(--fs-base);}
+  td[data-col="name"]{white-space:nowrap;}
+  td[data-col="alliances"]{flex:1;min-width:0;}
+  td[data-col="alliances"] .tag-wrap{justify-content:flex-end;}
+  td[data-col="actions"]{flex-basis:100%;}
+  .table-actions{width:100%;justify-content:flex-end;}
+}
+
+@media (max-width:600px){
+  .dash-header{flex-direction:column;align-items:stretch;padding:10px var(--sp-3);padding-top:calc(10px + env(safe-area-inset-top));}
+  .dash-header-right{justify-content:space-between;}
+  .controls-bar{flex-direction:column;align-items:stretch;}
+  .search-box,.filter-select{min-width:100%;}
+  .ledger-header{flex-direction:column;align-items:stretch;}
+  .ledger-header-right{justify-content:space-between;}
+  .modal-overlay{align-items:flex-end;padding:0;}
+  .modal{max-width:100%;border-radius:var(--radius-lg) var(--radius-lg) 0 0;max-height:88vh;animation:riseUp .3s var(--ease);}
+}
+
+@media (min-width:700px){
+  .controls-bar{flex-wrap:nowrap;}
+  .search-box{flex:2;}
+  .filter-select{flex:1;}
+}
+
+@media (min-width:1000px){
+  .dash-body{padding:var(--sp-5) var(--sp-5);}
+  .stat-card{padding:var(--sp-4) var(--sp-3);}
+}
+
+/* =========================================================
+   PRINT (PDF export)
+   ========================================================= */
+@media print{
+  body{background:#fff;color:#000;}
+  .dash-header,.controls-bar,.download-menu,.table-actions,.stats-row,.modal-overlay,
+  .btn,.search-box,.filter-select,#public-view-screen .dash-header{display:none !important;}
+  .dash-body{padding:0;}
+  .ledger{border:1px solid #999;box-shadow:none;background:#fff;}
+  table{min-width:100%;}
+  thead th{background:#eee;color:#000;border-bottom:2px solid #333;}
+  tbody td{color:#000;border-bottom:1px solid #ccc;}
+  .flag-tag{background:#eee !important;color:#000 !important;clip-path:none;border:1px solid #999;}
+  .player-name{color:#000;text-decoration:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen" class="screen">
+  <div class="auth-container">
+    <div class="auth-crest">
+      <div class="seal" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2l2.4 4.8L20 8l-4 4 1 5.6L12 15l-5 2.6 1-5.6-4-4 5.6-1.2L12 2z" fill="#0a0d13"/>
+        </svg>
+      </div>
+      <h1>Kingdom Ledger</h1>
+      <p>Rise of Kingdoms · Reward Roll</p>
+    </div>
+
+    <div class="auth-tabs" role="tablist">
+      <button class="auth-tab active" data-tab="signin" onclick="switchAuthTab('signin')">Sign In</button>
+      <button class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Sign Up</button>
+      <button class="auth-tab" data-tab="view" onclick="switchAuthTab('view')">View List</button>
+    </div>
+
+    <div id="auth-error" class="auth-msg auth-error" role="alert"></div>
+    <div id="auth-success" class="auth-msg auth-success" role="status"></div>
+
+    <!-- SIGN IN -->
+    <form id="signin-form" onsubmit="handleSignIn(event)">
+      <div class="form-group">
+        <label for="signin-username">Username</label>
+        <input type="text" id="signin-username" placeholder="Enter username" required autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="signin-password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="signin-password" placeholder="Enter password" required autocomplete="current-password" />
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('signin-password', this)">Show</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+    </form>
+
+    <!-- SIGN UP -->
+    <form id="signup-form" onsubmit="handleSignUp(event)" style="display:none;">
+      <div class="form-group">
+        <label for="signup-username">Username</label>
+        <input type="text" id="signup-username" placeholder="Choose a username" required autocomplete="username" />
+      </div>
+      <div class="form-group">
+        <label for="signup-password">Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="signup-password" placeholder="Create a password (min 6 chars)" required minlength="6" autocomplete="new-password" />
+          <button type="button" class="password-toggle" onclick="togglePasswordVisibility('signup-password', this)">Show</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="signup-kingdom">Kingdom Name</label>
+        <input type="text" id="signup-kingdom" placeholder="Name your kingdom" required />
+      </div>
+      <div class="form-group">
+        <label for="signup-kingdom-code">Kingdom Code (4 digits)</label>
+        <div class="code-row">
+          <input type="text" id="signup-kingdom-code" class="code-input" placeholder="4161" maxlength="4" required pattern="[0-9]{4}" inputmode="numeric" />
+          <button type="button" class="btn-gen" onclick="generateRandomCode()">Generate</button>
+        </div>
+        <div class="field-hint">Players use this code under <strong>View List</strong> to see the roll without an account.</div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Create Account &amp; Kingdom</button>
+    </form>
+
+    <!-- GUEST VIEW -->
+    <form id="guest-view-form" onsubmit="handleGuestView(event)" style="display:none;">
+      <div class="form-group">
+        <label for="guest-kingdom-code">Kingdom Code (4 digits)</label>
+        <input type="text" id="guest-kingdom-code" class="code-input" placeholder="0000" maxlength="4" required inputmode="numeric" />
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">View Reward List</button>
+    </form>
+
+    <p class="auth-footer-text" id="auth-footer-text">
+      Don't have an account? <a href="#" onclick="switchAuthTab('signup');return false;">Sign Up</a>
+    </p>
+    <p class="note">To view a list without signing in, tap "View List" and enter the 4‑digit kingdom code.</p>
+  </div>
+</div>
+
+<!-- ===== OWNER DASHBOARD ===== -->
+<div id="dashboard-screen" class="screen">
+  <header class="dash-header">
+    <div class="dash-header-left">
+      <div class="seal" aria-hidden="true"></div>
+      <div class="dash-header-text">
+        <h2 id="dashboard-kingdom-name">Kingdom Name</h2>
+        <span class="code-badge" id="dashboard-code-display">—</span>
+      </div>
+    </div>
+    <div class="dash-header-right">
+      <div class="user-badge">
+        <span id="dashboard-username">User</span>
+        <span class="role-tag owner">Owner</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="handleLogout()">Log Out</button>
+    </div>
+  </header>
+
+  <div class="dash-body">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-players">0</div>
+        <div class="stat-label">Total Players</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-alliances">0</div>
+        <div class="stat-label">Alliances Listed</div>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search players or alliance…" oninput="renderOwnerTable()" />
+      </div>
+      <select class="filter-select" id="filter-alliance" onchange="renderOwnerTable()">
+        <option value="">All Alliances</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="openAddPlayerModal()">+ Add Player</button>
+    </div>
+
+    <div class="ledger">
+      <div class="ledger-header">
+        <h3>Official Reward List</h3>
+        <div class="ledger-header-right">
+          <span class="count-badge" id="table-count">0 players</span>
+          <div class="menu-container">
+            <button class="three-dot-btn" id="download-menu-btn" onclick="toggleDownloadMenu()" aria-label="Export options">⋯</button>
+            <div class="download-menu" id="download-menu">
+              <button onclick="downloadCSV()">Download CSV</button>
+              <button onclick="downloadExcel()">Download Excel</button>
+              <button onclick="downloadPDF()">Download PDF</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Alliances</th>
+              <th style="width:130px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="player-table-body"></tbody>
+        </table>
+      </div>
+      <div id="empty-state" class="empty-state" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PUBLIC VIEW (guest) ===== -->
+<div id="public-view-screen" class="screen">
+  <header class="dash-header">
+    <div class="dash-header-left">
+      <div class="seal" aria-hidden="true"></div>
+      <div class="dash-header-text">
+        <h2 id="public-kingdom-name">Kingdom List</h2>
+        <span class="code-badge" id="public-code-display">—</span>
+      </div>
+    </div>
+    <div class="dash-header-right">
+      <div class="user-badge">
+        <span>Guest Viewer</span>
+        <span class="role-tag guest">Guest</span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="exitPublicView()">Exit View</button>
+    </div>
+  </header>
+
+  <div class="dash-body">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="public-stat-players">0</div>
+        <div class="stat-label">Total Players</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="public-stat-alliances">0</div>
+        <div class="stat-label">Alliances Listed</div>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <div class="search-box">
+        <input type="text" id="public-search-input" placeholder="Search players or alliance…" oninput="renderPublicTable()" />
+      </div>
+      <select class="filter-select" id="public-filter-alliance" onchange="renderPublicTable()">
+        <option value="">All Alliances</option>
+      </select>
+    </div>
+
+    <div class="ledger">
+      <div class="ledger-header">
+        <h3>Official Reward List</h3>
+        <span class="count-badge" id="public-table-count">0 players</span>
+      </div>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Player</th>
+              <th>Alliances</th>
+            </tr>
+          </thead>
+          <tbody id="public-player-table-body"></tbody>
+        </table>
+      </div>
+      <div id="public-empty-state" class="empty-state" style="display:none;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODALS ===== -->
+<div class="modal-overlay" id="player-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="player-modal-title">Add Player</h3>
+      <button class="modal-close" onclick="closeModal('player-modal')" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="player-form" onsubmit="handlePlayerSubmit(event)">
+        <div class="form-group">
+          <label for="player-name-input">Player Name</label>
+          <input type="text" id="player-name-input" placeholder="Enter player name" required />
+        </div>
+        <div class="form-group">
+          <label>Alliance Tags</label>
+          <div id="alliance-inputs-container"></div>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addAllianceInput()">+ Add Alliance</button>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('player-modal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="details-modal">
+  <div class="modal" style="max-width:360px;">
+    <div class="modal-head">
+      <h3>Player Details</h3>
+      <button class="modal-close" onclick="closeModal('details-modal')" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="details-body">
+        <div class="seal" id="details-avatar">?</div>
+        <h4 id="details-name">—</h4>
+        <p class="details-sub" id="details-id">—</p>
+        <div class="details-tags" id="details-alliances"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" onclick="closeModal('details-modal')">Close</button>
+      <button class="btn btn-primary" id="details-edit-btn" onclick="openEditFromDetails()">Edit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Surface the real error instead of the browser's generic "Script error."
+window.addEventListener('error', function (e) {
+    console.error('Uncaught error:', e.message, 'at', e.filename + ':' + e.lineno);
+});
+window.addEventListener('unhandledrejection', function (e) {
+    console.error('Unhandled promise rejection:', e.reason);
+});
+
+// ================================================================
+//  FIREBASE CONFIG (unchanged — points at the existing project)
+// ================================================================
+const firebaseConfig = {
+    apiKey: "AIzaSyAOwORVGzEi17vSm0xxtlYeNo_2Jyck7Ug",
+    authDomain: "rewards-list.firebaseapp.com",
+    databaseURL: "https://rewards-list-default-rtdb.firebaseio.com",
+    projectId: "rewards-list",
+    storageBucket: "rewards-list.firebasestorage.app",
+    messagingSenderId: "826415277088",
+    appId: "1:826415277088:web:6145174bb8b743538ec845"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// ================================================================
+//  STATE
+// ================================================================
+let currentUser = null;
+let currentKingdom = null;
+let currentKingdomCode = null;
+let isPublicView = false;
+let editingPlayerId = null;
+
+// ================================================================
+//  HELPERS
+// ================================================================
+function generateRandomCode() {
+    let code = '';
+    for (let i = 0; i < 4; i++) code += Math.floor(Math.random() * 10);
+    document.getElementById('signup-kingdom-code').value = code;
+}
+
+async function hashPassword(password, salt = null) {
+    if (!salt) salt = crypto.getRandomValues(new Uint8Array(16)).join('');
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password + salt);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return { salt, hash: hashHex };
+}
+
+async function verifyPassword(password, salt, expectedHash) {
+    const { hash } = await hashPassword(password, salt);
+    return hash === expectedHash;
+}
+
+function togglePasswordVisibility(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') { input.type = 'text'; btn.textContent = 'Hide'; }
+    else { input.type = 'password'; btn.textContent = 'Show'; }
+}
+
+function toggleDownloadMenu() {
+    document.getElementById('download-menu').classList.toggle('show');
+}
+document.addEventListener('click', function (event) {
+    const menu = document.getElementById('download-menu');
+    const btn = document.getElementById('download-menu-btn');
+    if (menu && btn && !menu.contains(event.target) && !btn.contains(event.target)) {
+        menu.classList.remove('show');
+    }
+});
+
+// ---- Alliance color hashing (consistent color per alliance tag) ----
+function allianceColorClass(tag) {
+    let hash = 0;
+    for (let i = 0; i < tag.length; i++) hash = (hash * 31 + tag.charCodeAt(i)) >>> 0;
+    return 'tag-c' + (hash % 6);
+}
+
+// ---- Alliance inputs (modal) ----
+function addAllianceInput(value = '') {
+    const container = document.getElementById('alliance-inputs-container');
+    const row = document.createElement('div');
+    row.className = 'alliance-row';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Enter alliance tag';
+    input.maxLength = 10;
+    input.value = value;
+    input.addEventListener('input', function () {
+        this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'remove-btn';
+    removeBtn.innerHTML = '×';
+    removeBtn.setAttribute('aria-label', 'Remove alliance');
+    removeBtn.onclick = function () { row.remove(); };
+    row.appendChild(input);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+}
+
+function clearAllianceInputs() {
+    document.getElementById('alliance-inputs-container').innerHTML = '';
+}
+
+function setAllianceInputs(tags) {
+    clearAllianceInputs();
+    if (tags && tags.length > 0) tags.forEach(tag => addAllianceInput(tag));
+    addAllianceInput();
+}
+
+function getAllianceTagsFromInputs() {
+    const inputs = document.querySelectorAll('#alliance-inputs-container input');
+    const tags = [];
+    inputs.forEach(input => {
+        const val = input.value.trim().toUpperCase();
+        if (val && /^[A-Z0-9]+$/.test(val)) tags.push(val);
+    });
+    return tags;
+}
+
+// ---- Auth UI ----
+function switchAuthTab(tab) {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
+    document.getElementById('signin-form').style.display = tab === 'signin' ? 'block' : 'none';
+    document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+    document.getElementById('guest-view-form').style.display = tab === 'view' ? 'block' : 'none';
+    const footer = document.getElementById('auth-footer-text');
+    if (tab === 'signin') footer.innerHTML =
+        'Don\'t have an account? <a href="#" onclick="switchAuthTab(\'signup\');return false;">Sign Up</a>';
+    else if (tab === 'signup') footer.innerHTML =
+        'Already have an account? <a href="#" onclick="switchAuthTab(\'signin\');return false;">Sign In</a>';
+    else footer.innerHTML =
+        'Want to manage a kingdom? <a href="#" onclick="switchAuthTab(\'signup\');return false;">Sign Up</a> or <a href="#" onclick="switchAuthTab(\'signin\');return false;">Sign In</a>';
+    hideAuthMessages();
+}
+
+function showAuthError(msg) {
+    const el = document.getElementById('auth-error');
+    el.textContent = msg;
+    el.classList.add('show');
+    document.getElementById('auth-success').classList.remove('show');
+}
+function showAuthSuccess(msg) {
+    const el = document.getElementById('auth-success');
+    el.textContent = msg;
+    el.classList.add('show');
+    document.getElementById('auth-error').classList.remove('show');
+}
+function hideAuthMessages() {
+    document.getElementById('auth-error').classList.remove('show');
+    document.getElementById('auth-success').classList.remove('show');
+}
+
+// ================================================================
+//  AUTH HANDLERS
+// ================================================================
+async function handleSignUp(e) {
+    e.preventDefault();
+    hideAuthMessages();
+    const username = document.getElementById('signup-username').value.trim();
+    const password = document.getElementById('signup-password').value;
+    const kingdomName = document.getElementById('signup-kingdom').value.trim();
+    let kingdomCode = document.getElementById('signup-kingdom-code').value.trim();
+
+    if (!username || !password || !kingdomName) return showAuthError('Please fill in all fields.');
+    if (password.length < 6) return showAuthError('Password must be at least 6 characters.');
+    if (!kingdomCode || kingdomCode.length !== 4 || !/^\d{4}$/.test(kingdomCode))
+        return showAuthError('Kingdom Code must be exactly 4 digits (0‑9).');
+
+    try {
+        const userSnap = await db.ref('users').orderByChild('username').equalTo(username).once('value');
+        if (userSnap.exists()) return showAuthError('Username already taken.');
+
+        const kingSnap = await db.ref('kingdoms/' + kingdomCode).once('value');
+        if (kingSnap.exists()) return showAuthError('Kingdom Code already taken. Please choose another.');
+
+        const { salt, hash } = await hashPassword(password);
+        const userId = Date.now().toString(36);
+        await db.ref('users/' + userId).set({
+            username: username, salt: salt, passwordHash: hash, kingdomCode: kingdomCode
+        });
+        await db.ref('kingdoms/' + kingdomCode).set({
+            name: kingdomName || username + ' Kingdom',
+            ownerId: userId, ownerName: username, players: []
+        });
+
+        showAuthSuccess('Account created! Your kingdom code is ' + kingdomCode);
+        currentUser = { username, kingdomCode: kingdomCode };
+        currentKingdomCode = kingdomCode;
+        loadKingdomData(kingdomCode);
+    } catch (error) {
+        showAuthError(error.message);
+    }
+}
+
+async function handleSignIn(e) {
+    e.preventDefault();
+    hideAuthMessages();
+    const username = document.getElementById('signin-username').value.trim();
+    const password = document.getElementById('signin-password').value;
+    if (!username || !password) return showAuthError('Please enter username and password.');
+
+    try {
+        const userSnap = await db.ref('users').orderByChild('username').equalTo(username).once('value');
+        if (!userSnap.exists()) return showAuthError('No account found with that username.');
+
+        const userId = Object.keys(userSnap.val())[0];
+        const userData = userSnap.val()[userId];
+        const isValid = await verifyPassword(password, userData.salt, userData.passwordHash);
+        if (!isValid) return showAuthError('Incorrect password.');
+
+        currentUser = { username: userData.username, kingdomCode: userData.kingdomCode };
+        currentKingdomCode = userData.kingdomCode;
+        loadKingdomData(userData.kingdomCode);
+    } catch (error) {
+        showAuthError(error.message);
+    }
+}
+
+async function handleGuestView(e) {
+    e.preventDefault();
+    hideAuthMessages();
+    const code = document.getElementById('guest-kingdom-code').value.trim();
+    if (!code || code.length !== 4 || !/^\d{4}$/.test(code)) return showAuthError('Please enter a valid 4‑digit code.');
+    try {
+        const snapshot = await db.ref('kingdoms/' + code).once('value');
+        const kingdom = snapshot.val();
+        if (kingdom) {
+            isPublicView = true;
+            currentKingdom = kingdom;
+            currentKingdomCode = code;
+            showPublicView(kingdom);
+        } else {
+            showAuthError('Kingdom not found.');
+        }
+    } catch (error) {
+        showAuthError(error.message);
+    }
+}
+
+// ================================================================
+//  LOAD & RENDER
+// ================================================================
+async function loadKingdomData(code) {
+    try {
+        const snapshot = await db.ref('kingdoms/' + code).once('value');
+        const kingdom = snapshot.val();
+        if (kingdom) {
+            currentKingdom = kingdom;
+            currentKingdomCode = code;
+            isPublicView = false;
+            showOwnerDashboard(kingdom);
+        } else {
+            showAuthError('Kingdom data not found.');
+        }
+    } catch (error) {
+        showAuthError(error.message);
+    }
+}
+
+function showOwnerDashboard(kingdom) {
+    document.getElementById('auth-screen').classList.remove('active');
+    document.getElementById('dashboard-screen').classList.add('active');
+    document.getElementById('public-view-screen').classList.remove('active');
+    document.getElementById('dashboard-kingdom-name').textContent = kingdom.name || 'Kingdom';
+    document.getElementById('dashboard-username').textContent = currentUser?.username || 'User';
+    document.getElementById('dashboard-code-display').textContent = currentKingdomCode;
+    renderOwnerTable();
+}
+
+function showPublicView(kingdom) {
+    document.getElementById('auth-screen').classList.remove('active');
+    document.getElementById('dashboard-screen').classList.remove('active');
+    document.getElementById('public-view-screen').classList.add('active');
+    document.getElementById('public-kingdom-name').textContent = kingdom.name || 'Kingdom';
+    document.getElementById('public-code-display').textContent = currentKingdomCode;
+    renderPublicTable();
+}
+
+function exitPublicView() {
+    document.getElementById('public-view-screen').classList.remove('active');
+    document.getElementById('auth-screen').classList.add('active');
+    switchAuthTab('view');
+    isPublicView = false;
+}
+
+function handleLogout() {
+    if (isPublicView) { exitPublicView(); return; }
+    currentUser = null;
+    currentKingdom = null;
+    currentKingdomCode = null;
+    document.getElementById('dashboard-screen').classList.remove('active');
+    document.getElementById('auth-screen').classList.add('active');
+    switchAuthTab('signin');
+}
+
+// ---- Shared row builder ----
+function buildAllianceCell(alliances) {
+    if (!alliances || alliances.length === 0) {
+        return '<div class="tag-wrap"><span class="flag-tag empty">No alliances</span></div>';
+    }
+    const chips = alliances.map(tag =>
+        `<span class="flag-tag ${allianceColorClass(tag)}">${tag}</span>`
+    ).join('');
+    return `<div class="tag-wrap">${chips}</div>`;
+}
+
+// ---- Render Owner Table ----
+function renderOwnerTable() {
+    if (!currentKingdom) return;
+    const players = currentKingdom.players || [];
+    const allAlliances = new Set(players.flatMap(p => p.alliances || []));
+    document.getElementById('stat-players').textContent = players.length;
+    document.getElementById('stat-alliances').textContent = allAlliances.size;
+    document.getElementById('table-count').textContent = `${players.length} player${players.length !== 1 ? 's' : ''}`;
+    populateFilterDropdown('filter-alliance', players);
+
+    const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+    const filterAlliance = document.getElementById('filter-alliance').value;
+    let filtered = [...players];
+    if (searchTerm) filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(searchTerm) ||
+        (p.alliances || []).some(tag => tag.toLowerCase().includes(searchTerm))
+    );
+    if (filterAlliance) filtered = filtered.filter(p => (p.alliances || []).includes(filterAlliance));
+
+    const tbody = document.getElementById('player-table-body');
+    tbody.innerHTML = '';
+    const emptyEl = document.getElementById('empty-state');
+
+    if (filtered.length === 0) {
+        emptyEl.style.display = 'block';
+        if (players.length === 0) {
+            emptyEl.innerHTML = '<h4>The ledger is empty</h4><p>Add your first player to start the reward roll.</p>';
+        } else {
+            emptyEl.innerHTML = '<h4>No matches</h4><p>No players match your search or filter.</p>';
+        }
+        return;
+    }
+    emptyEl.style.display = 'none';
+
+    filtered.forEach((player) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td data-col="name">
+                <span class="player-name" onclick="openPlayerDetails('${player.id}')">${player.name}</span>
+            </td>
+            <td data-col="alliances">${buildAllianceCell(player.alliances)}</td>
+            <td data-col="actions">
+                <div class="table-actions">
+                    <button class="btn btn-secondary" onclick="openEditPlayerModal('${player.id}')" aria-label="Edit ${player.name}">Edit</button>
+                    <button class="btn btn-danger" onclick="removePlayer('${player.id}')" aria-label="Remove ${player.name}">Remove</button>
+                </div>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// ---- Render Public Table ----
+function renderPublicTable() {
+    if (!currentKingdom) return;
+    const players = currentKingdom.players || [];
+    const allAlliances = new Set(players.flatMap(p => p.alliances || []));
+    document.getElementById('public-stat-players').textContent = players.length;
+    document.getElementById('public-stat-alliances').textContent = allAlliances.size;
+    document.getElementById('public-table-count').textContent = `${players.length} player${players.length !== 1 ? 's' : ''}`;
+    populateFilterDropdown('public-filter-alliance', players);
+
+    const searchTerm = document.getElementById('public-search-input').value.toLowerCase().trim();
+    const filterAlliance = document.getElementById('public-filter-alliance').value;
+    let filtered = [...players];
+    if (searchTerm) filtered = filtered.filter(p =>
+        p.name.toLowerCase().includes(searchTerm) ||
+        (p.alliances || []).some(tag => tag.toLowerCase().includes(searchTerm))
+    );
+    if (filterAlliance) filtered = filtered.filter(p => (p.alliances || []).includes(filterAlliance));
+
+    const tbody = document.getElementById('public-player-table-body');
+    tbody.innerHTML = '';
+    const emptyEl = document.getElementById('public-empty-state');
+
+    if (filtered.length === 0) {
+        emptyEl.style.display = 'block';
+        if (players.length === 0) {
+            emptyEl.innerHTML = '<h4>The ledger is empty</h4><p>This kingdom hasn\'t added any players yet.</p>';
+        } else {
+            emptyEl.innerHTML = '<h4>No matches</h4><p>No players match your search or filter.</p>';
+        }
+        return;
+    }
+    emptyEl.style.display = 'none';
+
+    filtered.forEach((player) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td data-col="name"><span class="player-name">${player.name}</span></td>
+            <td data-col="alliances">${buildAllianceCell(player.alliances)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+function populateFilterDropdown(selectId, players) {
+    const filter = document.getElementById(selectId);
+    const currentVal = filter.value;
+    filter.innerHTML = '<option value="">All Alliances</option>';
+    const tags = new Set(players.flatMap(p => p.alliances || []));
+    [...tags].sort().forEach(tag => {
+        const opt = document.createElement('option');
+        opt.value = tag;
+        opt.textContent = tag;
+        filter.appendChild(opt);
+    });
+    if (currentVal) filter.value = currentVal;
+}
+
+// ================================================================
+//  PLAYER CRUD
+// ================================================================
+function openAddPlayerModal() {
+    editingPlayerId = null;
+    document.getElementById('player-modal-title').textContent = 'Add Player';
+    document.getElementById('player-name-input').value = '';
+    clearAllianceInputs();
+    addAllianceInput();
+    document.getElementById('player-modal').classList.add('active');
+}
+
+function openEditPlayerModal(playerId) {
+    const player = currentKingdom.players.find(p => p.id === playerId);
+    if (!player) return;
+    editingPlayerId = playerId;
+    document.getElementById('player-modal-title').textContent = 'Edit Player';
+    document.getElementById('player-name-input').value = player.name;
+    setAllianceInputs(player.alliances || []);
+    document.getElementById('player-modal').classList.add('active');
+}
+
+async function handlePlayerSubmit(e) {
+    e.preventDefault();
+    const name = document.getElementById('player-name-input').value.trim();
+    const alliances = getAllianceTagsFromInputs();
+    if (!name) return;
+    let players = [...(currentKingdom.players || [])];
+    if (editingPlayerId) {
+        players = players.map(p => p.id === editingPlayerId ? { ...p, name, alliances } : p);
+    } else {
+        players.push({ id: Date.now().toString(36), name, alliances });
+    }
+    currentKingdom.players = players;
+    try {
+        await db.ref('kingdoms/' + currentKingdomCode + '/players').set(players);
+        closeModal('player-modal');
+        renderOwnerTable();
+    } catch (error) {
+        alert('Error saving: ' + error.message);
+    }
+}
+
+async function removePlayer(playerId) {
+    if (!confirm('Remove this player?')) return;
+    let players = currentKingdom.players.filter(p => p.id !== playerId);
+    currentKingdom.players = players;
+    try {
+        await db.ref('kingdoms/' + currentKingdomCode + '/players').set(players);
+        renderOwnerTable();
+    } catch (error) {
+        alert('Error removing: ' + error.message);
+    }
+}
+
+function openPlayerDetails(playerId) {
+    const player = currentKingdom.players.find(p => p.id === playerId);
+    if (!player) return;
+    document.getElementById('details-avatar').textContent = player.name.charAt(0).toUpperCase();
+    document.getElementById('details-name').textContent = player.name;
+    document.getElementById('details-id').textContent = 'ID ' + player.id.substring(0, 10) + '…';
+    const tagsHtml = (player.alliances || []).map(tag =>
+        `<span class="flag-tag ${allianceColorClass(tag)}">${tag}</span>`
+    ).join('');
+    document.getElementById('details-alliances').innerHTML = tagsHtml ||
+        '<span style="color:var(--text-600);font-size:11px;">No alliances</span>';
+    document.getElementById('details-edit-btn').style.display = 'inline-flex';
+    document.getElementById('details-edit-btn').onclick = () => {
+        closeModal('details-modal');
+        openEditPlayerModal(playerId);
+    };
+    document.getElementById('details-modal').classList.add('active');
+}
+
+function openEditFromDetails() { /* handled via dynamic onclick above */ }
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+}
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('active');
+    });
+});
+
+// ================================================================
+//  EXPORT
+// ================================================================
+function getFilteredPlayersForExport() {
+    const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+    const filterAlliance = document.getElementById('filter-alliance').value;
+    let players = currentKingdom?.players || [];
+    if (searchTerm) players = players.filter(p =>
+        p.name.toLowerCase().includes(searchTerm) ||
+        (p.alliances || []).some(tag => tag.toLowerCase().includes(searchTerm))
+    );
+    if (filterAlliance) players = players.filter(p => (p.alliances || []).includes(filterAlliance));
+    return players;
+}
+
+function downloadCSV() {
+    const players = getFilteredPlayersForExport();
+    const kingdomName = currentKingdom?.name || 'Kingdom';
+    let csv = '\uFEFF';
+    csv += 'Kingdom,Player Name,Alliances\n';
+    players.forEach(p => {
+        const alliances = (p.alliances || []).join(' | ') || 'None';
+        csv += `"${kingdomName}","${p.name}","${alliances}"\n`;
+    });
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${kingdomName}_reward_list.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    document.getElementById('download-menu').classList.remove('show');
+}
+
+function downloadExcel() {
+    const players = getFilteredPlayersForExport();
+    const kingdomName = currentKingdom?.name || 'Kingdom';
+    let html = '<html><head><meta charset="UTF-8"></head><body>';
+    html += '<table border="1"><tr><th>#</th><th>Player Name</th><th>Alliances</th></tr>';
+    players.forEach((p, i) => {
+        const alliances = (p.alliances || []).join(', ') || 'None';
+        html += `<tr><td>${i + 1}</td><td>${p.name}</td><td>${alliances}</td></tr>`;
+    });
+    html += '</table></body></html>';
+    const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${kingdomName}_reward_list.xls`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    document.getElementById('download-menu').classList.remove('show');
+}
+
+function downloadPDF() {
+    window.print();
+    document.getElementById('download-menu').classList.remove('show');
+}
+
+// ================================================================
+//  INIT
+// ================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('auth-screen').classList.add('active');
+    switchAuthTab('signin');
+    generateRandomCode();
+});
+</script>
+</body>
+</html>
