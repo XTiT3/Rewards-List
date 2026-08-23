@@ -1,0 +1,2031 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0f1a" />
+    <title>ROK Kingdom Rewards – Premium UI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    <style>
+        /* ============ ROOT VARIABLES ============ */
+        :root {
+            --bg: #0b0f1a;
+            --bg-gradient: radial-gradient(ellipse at top, #1a2235 0%, #0b0f1a 70%);
+            --bg-card: #121a2b;
+            --bg-card-hover: #182236;
+            --bg-input: #1a2437;
+            --bg-input-focus: #1f2b41;
+            --border: #2a3a4f;
+            --border-light: #3b4d64;
+            --gold: #e6b800;
+            --gold-light: #f0c929;
+            --gold-glow: rgba(230, 184, 0, 0.25);
+            --text: #eef2f7;
+            --text-secondary: #a0b0c4;
+            --text-muted: #62748c;
+            --danger: #ef4444;
+            --danger-bg: rgba(239, 68, 68, 0.12);
+            --success: #22c55e;
+            --success-bg: rgba(34, 197, 94, 0.12);
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.25);
+            --shadow-glow: 0 0 15px var(--gold-glow);
+            --radius: 12px;
+            --radius-sm: 8px;
+            --radius-xs: 6px;
+            --transition: 0.2s ease;
+            --font-heading: 'Cinzel', serif;
+            --font-body: 'Inter', sans-serif;
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 12px;
+            --space-lg: 16px;
+            --space-xl: 24px;
+            --touch-min: 44px;
+        }
+
+        /* ============ RESET ============ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        html {
+            -webkit-text-size-adjust: 100%;
+        }
+        body {
+            font-family: var(--font-body);
+            background: var(--bg);
+            background-image: var(--bg-gradient);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.5;
+            font-size: 14px;
+            overflow-x: hidden;
+            overscroll-behavior-y: none;
+        }
+        ::-webkit-scrollbar {
+            width: 5px;
+            height: 5px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 3px;
+        }
+
+        /* ============ SCREENS ============ */
+        .screen {
+            display: none;
+            min-height: 100vh;
+            animation: fadeIn 0.3s ease;
+        }
+        .screen.active {
+            display: flex;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* ============ AUTH SCREEN ============ */
+        #auth-screen {
+            justify-content: center;
+            align-items: center;
+            padding: var(--space-md);
+        }
+        .auth-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: var(--space-xl);
+            width: 100%;
+            max-width: 460px;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .auth-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--gold), #ffd700, var(--gold));
+            opacity: 0.7;
+        }
+        .auth-logo {
+            text-align: center;
+            margin-bottom: var(--space-lg);
+        }
+        .auth-logo h1 {
+            font-family: var(--font-heading);
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--gold);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--gold-glow);
+        }
+        .auth-logo p {
+            color: var(--text-secondary);
+            font-size: 12px;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            margin-bottom: var(--space-lg);
+            border: 1px solid var(--border);
+        }
+        .auth-tab {
+            flex: 1;
+            padding: 10px 4px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: var(--radius-xs);
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            min-height: var(--touch-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        .auth-tab.active {
+            background: var(--gold);
+            color: #0b0f1a;
+            box-shadow: 0 2px 8px var(--gold-glow);
+        }
+        .auth-tab:not(.active):hover {
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .form-group {
+            margin-bottom: var(--space-md);
+            position: relative;
+        }
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            transition: var(--transition);
+            min-height: var(--touch-min);
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px var(--gold-glow);
+            background: var(--bg-input-focus);
+        }
+        .form-group input.code-input {
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 700;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            padding-right: 60px;
+        }
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            min-height: var(--touch-min);
+            min-width: var(--touch-min);
+            border-radius: var(--radius-xs);
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+        .password-toggle:hover {
+            color: var(--text);
+            background: var(--bg-input-focus);
+        }
+
+        .code-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .code-row input {
+            flex: 1;
+        }
+        .code-row .btn-gen {
+            flex-shrink: 0;
+            padding: 0 16px;
+            min-height: var(--touch-min);
+            border: 1px solid var(--border-light);
+            background: var(--bg-input);
+            color: var(--text-secondary);
+            border-radius: var(--radius-xs);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            touch-action: manipulation;
+        }
+        .code-row .btn-gen:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+        }
+
+        .btn {
+            padding: 12px 16px;
+            border: none;
+            border-radius: var(--radius-xs);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            min-height: var(--touch-min);
+            touch-action: manipulation;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #e6b800, #f0c929);
+            color: #0b0f1a;
+            box-shadow: 0 2px 10px rgba(230, 184, 0, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(230, 184, 0, 0.4);
+        }
+        .btn-secondary {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border-light);
+        }
+        .btn-secondary:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(230, 184, 0, 0.05);
+        }
+        .btn-danger {
+            background: transparent;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        .btn-danger:hover {
+            background: var(--danger-bg);
+        }
+        .btn-sm {
+            padding: 8px 12px;
+            font-size: 11px;
+            min-height: 36px;
+        }
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border-radius: var(--radius-xs);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 700;
+        }
+        .btn-full {
+            width: 100%;
+        }
+
+        .auth-error,
+        .auth-success {
+            font-size: 12px;
+            margin-bottom: var(--space-sm);
+            padding: 10px;
+            border-radius: var(--radius-xs);
+            display: none;
+        }
+        .auth-error {
+            color: var(--danger);
+            background: var(--danger-bg);
+            border-left: 3px solid var(--danger);
+        }
+        .auth-error.show { display: block; animation: slideUp 0.2s ease; }
+        .auth-success {
+            color: var(--success);
+            background: var(--success-bg);
+            border-left: 3px solid var(--success);
+        }
+        .auth-success.show { display: block; animation: slideUp 0.2s ease; }
+        .auth-footer-text {
+            text-align: center;
+            margin-top: var(--space-sm);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .auth-footer-text a {
+            color: var(--gold);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        .note {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        /* ============ DASHBOARD HEADER ============ */
+        #dashboard-screen,
+        #public-view-screen {
+            flex-direction: column;
+        }
+        .dashboard-header {
+            background: rgba(18, 26, 43, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 12px var(--space-lg);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        }
+        .dashboard-header-left {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+        .dashboard-header-left h2 {
+            font-family: var(--font-heading);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--gold);
+            letter-spacing: 1px;
+            word-break: break-word;
+            text-shadow: 0 0 8px var(--gold-glow);
+        }
+        .dashboard-header-left .kingdom-code-badge {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--gold-light);
+            background: var(--bg-input);
+            padding: 2px 12px;
+            border-radius: 14px;
+            border: 1px solid var(--border-light);
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+            display: inline-block;
+            width: fit-content;
+            box-shadow: inset 0 0 4px rgba(230, 184, 0, 0.1);
+        }
+        .dashboard-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex-shrink: 0;
+        }
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            background: var(--bg-input);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-secondary);
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.2);
+        }
+        .role-badge {
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .role-badge.owner { background: var(--gold-glow); color: var(--gold); }
+        .role-badge.guest { background: var(--bg-input); color: var(--text-muted); border: 1px solid var(--border-light); }
+
+        /* ============ DASHBOARD BODY ============ */
+        .dashboard-body {
+            flex: 1;
+            padding: var(--space-lg);
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+        }
+        .stats-row {
+            display: flex;
+            width: 100%;
+            margin-bottom: var(--space-md);
+        }
+        .stat-card {
+            flex: 1;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px 12px;
+            text-align: center;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        .stat-card:hover {
+            border-color: var(--gold);
+            box-shadow: var(--shadow-glow);
+        }
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            font-family: var(--font-heading);
+        }
+        .stat-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-top: 2px;
+        }
+
+        .controls-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: var(--space-md);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 8px;
+            box-shadow: var(--shadow);
+        }
+        .search-box {
+            flex: 1;
+            min-width: 140px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            min-height: var(--touch-min);
+            transition: var(--transition);
+        }
+        .search-box input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 3px var(--gold-glow);
+        }
+        .filter-select {
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+            min-height: var(--touch-min);
+            min-width: 120px;
+            transition: var(--transition);
+        }
+        .filter-select:focus {
+            border-color: var(--gold);
+        }
+
+        .menu-container {
+            position: relative;
+        }
+        .three-dot-btn {
+            background: transparent;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xs);
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 6px 12px;
+            font-size: 18px;
+            line-height: 1;
+            min-height: var(--touch-min);
+            min-width: var(--touch-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition);
+            touch-action: manipulation;
+        }
+        .three-dot-btn:hover {
+            border-color: var(--gold);
+            color: var(--gold);
+            background: rgba(230, 184, 0, 0.05);
+        }
+        .download-menu {
+            position: absolute;
+            right: 0;
+            top: calc(100% + 4px);
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-xs);
+            box-shadow: var(--shadow-lg);
+            min-width: 160px;
+            z-index: 200;
+            display: none;
+            padding: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .download-menu.show {
+            display: block;
+            animation: fadeIn 0.15s ease;
+        }
+        .download-menu button {
+            display: block;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            color: var(--text);
+            padding: 10px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: var(--radius-xs);
+            transition: var(--transition);
+            min-height: 40px;
+        }
+        .download-menu button:hover {
+            background: var(--bg-input);
+            color: var(--gold);
+        }
+
+        /* ============ TABLE & PLAYER-ALLIANCE LAYOUT ============ */
+        .table-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        .table-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            gap: 6px;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        .table-header h3 {
+            font-family: var(--font-heading);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            color: var(--gold);
+        }
+        .table-header-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .count-badge {
+            background: var(--bg-input);
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 480px;
+        }
+        thead th {
+            background: var(--bg-input);
+            padding: 10px 16px;
+            text-align: left;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        tbody tr {
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        tbody tr:hover {
+            background: var(--bg-card-hover);
+        }
+        tbody td {
+            padding: 10px 16px;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+        .player-name {
+            color: var(--gold-light);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        .player-name:hover {
+            text-decoration: underline;
+            color: var(--gold);
+        }
+
+        /* Alliance scroll container */
+        .alliance-scroll-container {
+            max-height: 120px; /* fixed height for scroll */
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding-right: 4px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-light) transparent;
+        }
+        .alliance-scroll-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .alliance-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 2px;
+        }
+        .alliance-item {
+            display: block;
+            padding: 2px 0;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            color: var(--gold-light);
+            white-space: nowrap;
+            border-bottom: 1px dashed rgba(255,255,255,0.05);
+            letter-spacing: 0.5px;
+        }
+        .alliance-item:last-child {
+            border-bottom: none;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 24px 12px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        /* ============ MODALS ============ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            animation: fadeIn 0.2s ease;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius);
+            padding: 20px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--gold), transparent);
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .modal-header h3 {
+            font-family: var(--font-heading);
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 28px;
+            cursor: pointer;
+            padding: 4px;
+            min-width: var(--touch-min);
+            min-height: var(--touch-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: var(--transition);
+            touch-action: manipulation;
+        }
+        .modal-close:hover {
+            color: var(--danger);
+            background: var(--danger-bg);
+        }
+        .modal-body {
+            margin-bottom: 16px;
+        }
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .alliance-input-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 8px;
+        }
+        .alliance-input-row input {
+            flex: 1;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            color: var(--text);
+            font-size: 16px;
+            outline: none;
+            min-height: var(--touch-min);
+            text-transform: uppercase;
+            transition: var(--transition);
+        }
+        .alliance-input-row input:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px var(--gold-glow);
+        }
+        .alliance-input-row .remove-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px;
+            min-width: var(--touch-min);
+            min-height: var(--touch-min);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: var(--radius-xs);
+            transition: var(--transition);
+            touch-action: manipulation;
+        }
+        .alliance-input-row .remove-btn:hover {
+            color: var(--danger);
+            background: var(--danger-bg);
+        }
+
+        .player-details-content {
+            text-align: center;
+        }
+        .avatar-circle {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--bg-input);
+            border: 2px solid var(--gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 10px;
+            color: var(--gold);
+            font-weight: 700;
+            box-shadow: 0 0 12px var(--gold-glow);
+        }
+        .player-details-content h4 {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: var(--text);
+        }
+        .detail-sub {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 10px;
+        }
+        .alliance-section-detail {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        /* ============ RESPONSIVE ============ */
+        @media (max-width: 600px) {
+            .dashboard-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+                padding: 8px var(--space-sm);
+            }
+            .dashboard-header-left {
+                align-items: flex-start;
+            }
+            .dashboard-header-right {
+                justify-content: flex-end;
+            }
+            .dashboard-body {
+                padding: var(--space-sm);
+            }
+            .stats-row .stat-card {
+                padding: 12px 8px;
+            }
+            .stat-value {
+                font-size: 22px;
+            }
+            .controls-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+                padding: 8px;
+            }
+            .search-box {
+                min-width: 100%;
+            }
+            .filter-select {
+                min-width: 100%;
+            }
+            .table-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+                padding: 10px 12px;
+            }
+            .table-header-right {
+                justify-content: space-between;
+            }
+
+            /* Mobile: player left, alliance right inside card */
+            .table-wrapper {
+                overflow-x: visible;
+            }
+            table {
+                min-width: 0;
+                display: block;
+            }
+            thead {
+                display: none;
+            }
+            tbody {
+                display: block;
+                padding: 0 8px 8px;
+            }
+            tbody tr {
+                display: block;
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                margin-bottom: 8px;
+                padding: 10px;
+                background: var(--bg-input);
+                box-shadow: var(--shadow);
+            }
+            tbody tr:hover {
+                background: var(--bg-card-hover);
+            }
+            tbody td {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                text-align: right;
+                padding: 6px 0;
+                border: none;
+                font-size: 14px;
+                position: relative;
+            }
+            tbody td::before {
+                content: attr(data-label);
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                color: var(--text-muted);
+                margin-right: 10px;
+                white-space: nowrap;
+            }
+            tbody td:nth-child(1)::before { content: "#"; }
+            tbody td:nth-child(2)::before { content: "Player"; }
+            tbody td:nth-child(3)::before { content: "Alliances"; }
+            tbody td:nth-child(4)::before { content: "Actions"; }
+
+            /* For alliance cell, align left-right */
+            tbody td:nth-child(3) {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+            }
+            tbody td:nth-child(3)::before {
+                content: "Alliances";
+                text-align: left;
+                margin-bottom: 4px;
+            }
+            .alliance-scroll-container {
+                max-height: 100px; /* slightly smaller on mobile */
+                width: 100%;
+            }
+
+            .table-actions {
+                justify-content: flex-end;
+            }
+            .table-actions .btn-icon {
+                width: 40px;
+                height: 40px;
+                font-size: 14px;
+            }
+            .btn-sm {
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            .btn-icon {
+                width: 36px;
+                height: 36px;
+                font-size: 12px;
+            }
+
+            .auth-container {
+                padding: var(--space-md);
+            }
+            .auth-logo h1 {
+                font-size: 18px;
+            }
+            .auth-tab {
+                font-size: 11px;
+                padding: 8px 2px;
+                min-height: 38px;
+            }
+            .form-group input {
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+            .btn {
+                font-size: 12px;
+                padding: 10px 12px;
+                min-height: 40px;
+            }
+            .code-row .btn-gen {
+                font-size: 11px;
+                padding: 0 12px;
+                min-height: 40px;
+            }
+            .modal {
+                padding: 16px;
+                max-width: 100%;
+                border-radius: var(--radius-sm);
+            }
+            .modal-overlay {
+                padding: 8px;
+                align-items: flex-end;
+            }
+            .modal {
+                animation: slideUp 0.3s ease;
+                max-height: 85vh;
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .auth-container {
+                padding: var(--space-sm);
+            }
+            .auth-tabs {
+                gap: 2px;
+            }
+            .auth-tab {
+                font-size: 10px;
+                padding: 6px 2px;
+            }
+            .form-group input {
+                font-size: 16px;
+                padding: 8px 10px;
+            }
+            .btn {
+                font-size: 11px;
+                padding: 8px 10px;
+            }
+            .stat-value {
+                font-size: 18px;
+            }
+            .dashboard-header-left h2 {
+                font-size: 16px;
+            }
+            .dashboard-header-left .kingdom-code-badge {
+                font-size: 11px;
+            }
+            .user-badge {
+                font-size: 10px;
+                padding: 2px 8px;
+            }
+            .role-badge {
+                font-size: 8px;
+                padding: 1px 6px;
+            }
+            .table-actions .btn-icon {
+                width: 34px;
+                height: 34px;
+                font-size: 11px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .controls-bar {
+                flex-wrap: nowrap;
+            }
+            .search-box {
+                flex: 2;
+            }
+            .filter-select {
+                flex: 1;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .dashboard-body {
+                padding: 20px 24px;
+            }
+            .stat-card {
+                padding: 20px 24px;
+            }
+            .stat-value {
+                font-size: 32px;
+            }
+            .table-header h3 {
+                font-size: 18px;
+            }
+            thead th {
+                font-size: 11px;
+                padding: 12px 16px;
+            }
+            tbody td {
+                padding: 12px 16px;
+                font-size: 15px;
+            }
+            .alliance-scroll-container {
+                max-height: 150px;
+            }
+        }
+
+        /* ============ PRINT ============ */
+        @media print {
+            body {
+                background: #fff;
+                color: #000;
+            }
+            .dashboard-header,
+            .controls-bar,
+            .download-menu,
+            .table-actions,
+            .stats-row,
+            .modal-overlay,
+            .btn,
+            .search-box,
+            .filter-select {
+                display: none !important;
+            }
+            .dashboard-body {
+                padding: 0;
+            }
+            .table-container {
+                border: 1px solid #ccc;
+                box-shadow: none;
+            }
+            table {
+                min-width: 100%;
+            }
+            thead th {
+                background: #f0f0f0;
+                color: #000;
+                border-bottom: 2px solid #333;
+                font-size: 10px;
+            }
+            tbody td {
+                color: #000;
+                border-bottom: 1px solid #ddd;
+                font-size: 12px;
+            }
+            .alliance-item {
+                color: #000;
+                border-bottom: 1px solid #ddd;
+                padding: 2px 0;
+            }
+            .player-name {
+                color: #000;
+                text-decoration: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ===== AUTH SCREEN ===== -->
+    <div id="auth-screen" class="screen">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <h1>Kingdom Rewards</h1>
+                <p>Rise of Kingdoms • Official Reward List</p>
+            </div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" data-tab="signin" onclick="switchAuthTab('signin')">Sign In</button>
+                <button class="auth-tab" data-tab="signup" onclick="switchAuthTab('signup')">Sign Up</button>
+                <button class="auth-tab" data-tab="view" onclick="switchAuthTab('view')">View List</button>
+            </div>
+            <div id="auth-error" class="auth-error"></div>
+            <div id="auth-success" class="auth-success"></div>
+
+            <!-- SIGN IN -->
+            <form id="signin-form" onsubmit="handleSignIn(event)">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="signin-username" placeholder="Enter username" required autocomplete="username" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="signin-password" placeholder="Enter password" required autocomplete="current-password" />
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('signin-password', this)">Show</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+            </form>
+
+            <!-- SIGN UP -->
+            <form id="signup-form" onsubmit="handleSignUp(event)" style="display:none;">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="signup-username" placeholder="Choose a username" required autocomplete="username" />
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="signup-password" placeholder="Create a password (min 6 chars)" required minlength="6" autocomplete="new-password" />
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('signup-password', this)">Show</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Kingdom Name</label>
+                    <input type="text" id="signup-kingdom" placeholder="Name your Kingdom" required />
+                </div>
+                <div class="form-group">
+                    <label>Kingdom Code (4‑digit number)</label>
+                    <div class="code-row">
+                        <input type="text" id="signup-kingdom-code" class="code-input" placeholder="e.g. 4161" maxlength="4" required pattern="[0-9]{4}" inputmode="numeric" />
+                        <button type="button" class="btn-gen" onclick="generateRandomCode()">Generate</button>
+                    </div>
+                    <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+                        Players will use this code to view your list via <strong>View List</strong>.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">Create Account &amp; Kingdom</button>
+            </form>
+
+            <!-- GUEST VIEW -->
+            <form id="guest-view-form" onsubmit="handleGuestView(event)" style="display:none;">
+                <div class="form-group">
+                    <label>Kingdom Code (4 digits)</label>
+                    <input type="text" id="guest-kingdom-code" class="code-input" placeholder="Enter 4‑digit code" maxlength="4" required style="text-transform:uppercase;" inputmode="numeric" />
+                </div>
+                <button type="submit" class="btn btn-primary btn-full">View Reward List</button>
+            </form>
+
+            <p class="auth-footer-text" id="auth-footer-text">
+                Don't have an account? <a href="#" onclick="switchAuthTab('signup');return false;">Sign Up</a>
+            </p>
+            <p class="note">To view a list, click "View List" and enter the 4‑digit kingdom code.</p>
+        </div>
+    </div>
+
+    <!-- ===== OWNER DASHBOARD ===== -->
+    <div id="dashboard-screen" class="screen">
+        <header class="dashboard-header">
+            <div class="dashboard-header-left">
+                <h2 id="dashboard-kingdom-name">Kingdom Name</h2>
+                <span class="kingdom-code-badge" id="dashboard-code-display">—</span>
+            </div>
+            <div class="dashboard-header-right">
+                <div class="user-badge">
+                    <span id="dashboard-username">User</span>
+                    <span class="role-badge owner" id="dashboard-role-badge">Owner</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="handleLogout()">Log Out</button>
+            </div>
+        </header>
+        <div class="dashboard-body">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-players">0</div>
+                    <div class="stat-label">Total Players</div>
+                </div>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="Search players or alliance..." oninput="renderOwnerTable()" />
+                </div>
+                <select class="filter-select" id="filter-alliance" onchange="renderOwnerTable()">
+                    <option value="">All Alliances</option>
+                </select>
+                <button class="btn btn-primary btn-sm" onclick="openAddPlayerModal()">+ Add Player</button>
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Official Reward List</h3>
+                    <div class="table-header-right">
+                        <span class="count-badge" id="table-count">0 players</span>
+                        <div class="menu-container">
+                            <button class="three-dot-btn" id="download-menu-btn" onclick="toggleDownloadMenu()">⋯</button>
+                            <div class="download-menu" id="download-menu">
+                                <button onclick="downloadCSV()">Download CSV</button>
+                                <button onclick="downloadExcel()">Download Excel</button>
+                                <button onclick="downloadPDF()">Download PDF</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="table-wrapper">
+                    <table class="owner-table">
+                        <thead>
+                            <tr>
+                                <th style="width:30px;">#</th>
+                                <th>Player Name</th>
+                                <th>Alliances</th>
+                                <th style="width:70px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="player-table-body"></tbody>
+                    </table>
+                </div>
+                <div id="empty-state" class="empty-state" style="display:none;">
+                    <p>No players found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PUBLIC VIEW (guest) ===== -->
+    <div id="public-view-screen" class="screen">
+        <header class="dashboard-header">
+            <div class="dashboard-header-left">
+                <h2 id="public-kingdom-name">Kingdom List</h2>
+                <span class="kingdom-code-badge" id="public-code-display">—</span>
+            </div>
+            <div class="dashboard-header-right">
+                <div class="user-badge">
+                    <span>Guest Viewer</span>
+                    <span class="role-badge guest">Guest</span>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="exitPublicView()">Exit View</button>
+            </div>
+        </header>
+        <div class="dashboard-body">
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-value" id="public-stat-players">0</div>
+                    <div class="stat-label">Total Players</div>
+                </div>
+            </div>
+            <div class="controls-bar">
+                <div class="search-box">
+                    <input type="text" id="public-search-input" placeholder="Search players or alliance..." oninput="renderPublicTable()" />
+                </div>
+                <select class="filter-select" id="public-filter-alliance" onchange="renderPublicTable()">
+                    <option value="">All Alliances</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <div class="table-header">
+                    <h3>Official Reward List</h3>
+                    <span class="count-badge" id="public-table-count">0 players</span>
+                </div>
+                <div class="table-wrapper">
+                    <table class="public-table">
+                        <thead>
+                            <tr>
+                                <th style="width:30px;">#</th>
+                                <th>Player Name</th>
+                                <th>Alliances</th>
+                            </tr>
+                        </thead>
+                        <tbody id="public-player-table-body"></tbody>
+                    </table>
+                </div>
+                <div id="public-empty-state" class="empty-state" style="display:none;">
+                    <p>No players found.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODALS ===== -->
+    <div class="modal-overlay" id="player-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="player-modal-title">Add Player</h3>
+                <button class="modal-close" onclick="closeModal('player-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="player-form" onsubmit="handlePlayerSubmit(event)">
+                    <div class="form-group">
+                        <label>Player Name</label>
+                        <input type="text" id="player-name-input" placeholder="Enter player name" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Alliance Tags (letters &amp; numbers allowed)</label>
+                        <div id="alliance-inputs-container"></div>
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="addAllianceInput()">+ Add Alliance</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal('player-modal')">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Player</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="details-modal">
+        <div class="modal" style="max-width:360px;">
+            <div class="modal-header">
+                <h3>Player Details</h3>
+                <button class="modal-close" onclick="closeModal('details-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="player-details-content">
+                    <div class="avatar-circle" id="details-avatar">?</div>
+                    <h4 id="details-name">—</h4>
+                    <p class="detail-sub" id="details-id">—</p>
+                    <div class="alliance-section-detail" id="details-alliances"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('details-modal')">Close</button>
+                <button class="btn btn-primary" id="details-edit-btn" onclick="openEditFromDetails()">Edit</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        //  FIREBASE CONFIG
+        // ================================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOwORVGzEi17vSm0xxtlYeNo_2Jyck7Ug",
+            authDomain: "rewards-list.firebaseapp.com",
+            databaseURL: "https://rewards-list-default-rtdb.firebaseio.com",
+            projectId: "rewards-list",
+            storageBucket: "rewards-list.firebasestorage.app",
+            messagingSenderId: "826415277088",
+            appId: "1:826415277088:web:6145174bb8b743538ec845"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // ================================================================
+        //  STATE
+        // ================================================================
+        let currentUser = null;
+        let currentKingdom = null;
+        let currentKingdomCode = null;
+        let isPublicView = false;
+        let editingPlayerId = null;
+
+        // ================================================================
+        //  HELPERS
+        // ================================================================
+        function generateRandomCode() {
+            let code = '';
+            for (let i = 0; i < 4; i++) {
+                code += Math.floor(Math.random() * 10);
+            }
+            document.getElementById('signup-kingdom-code').value = code;
+        }
+
+        async function hashPassword(password, salt = null) {
+            if (!salt) {
+                salt = crypto.getRandomValues(new Uint8Array(16)).join('');
+            }
+            const encoder = new TextEncoder();
+            const data = encoder.encode(password + salt);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            return { salt, hash: hashHex };
+        }
+
+        async function verifyPassword(password, salt, expectedHash) {
+            const { hash } = await hashPassword(password, salt);
+            return hash === expectedHash;
+        }
+
+        function togglePasswordVisibility(inputId, btn) {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = 'Hide';
+            } else {
+                input.type = 'password';
+                btn.textContent = 'Show';
+            }
+        }
+
+        function toggleDownloadMenu() {
+            document.getElementById('download-menu').classList.toggle('show');
+        }
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('download-menu');
+            const btn = document.getElementById('download-menu-btn');
+            if (menu && btn && !menu.contains(event.target) && !btn.contains(event.target)) {
+                menu.classList.remove('show');
+            }
+        });
+
+        // ---- Alliance inputs ----
+        function addAllianceInput(value = '') {
+            const container = document.getElementById('alliance-inputs-container');
+            const row = document.createElement('div');
+            row.className = 'alliance-input-row';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = 'Enter alliance tag';
+            input.maxLength = 10;
+            input.value = value;
+            input.style.textTransform = 'uppercase';
+            input.addEventListener('input', function() {
+                this.value = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            });
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'remove-btn';
+            removeBtn.innerHTML = '×';
+            removeBtn.onclick = function() { row.remove(); };
+            row.appendChild(input);
+            row.appendChild(removeBtn);
+            container.appendChild(row);
+        }
+
+        function clearAllianceInputs() {
+            document.getElementById('alliance-inputs-container').innerHTML = '';
+        }
+
+        function setAllianceInputs(tags) {
+            clearAllianceInputs();
+            if (tags && tags.length > 0) {
+                tags.forEach(tag => addAllianceInput(tag));
+            }
+            addAllianceInput();
+        }
+
+        function getAllianceTagsFromInputs() {
+            const inputs = document.querySelectorAll('#alliance-inputs-container input');
+            const tags = [];
+            inputs.forEach(input => {
+                const val = input.value.trim().toUpperCase();
+                if (val && val.length >= 1 && /^[A-Z0-9]+$/.test(val)) {
+                    tags.push(val);
+                }
+            });
+            return tags;
+        }
+
+        // ---- Auth UI ----
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`.auth-tab[data-tab="${tab}"]`).classList.add('active');
+            document.getElementById('signin-form').style.display = tab === 'signin' ? 'block' : 'none';
+            document.getElementById('signup-form').style.display = tab === 'signup' ? 'block' : 'none';
+            document.getElementById('guest-view-form').style.display = tab === 'view' ? 'block' : 'none';
+            const footer = document.getElementById('auth-footer-text');
+            if (tab === 'signin') footer.innerHTML =
+                'Don\'t have an account? <a href="#" onclick="switchAuthTab(\'signup\');return false;">Sign Up</a>';
+            else if (tab === 'signup') footer.innerHTML =
+                'Already have an account? <a href="#" onclick="switchAuthTab(\'signin\');return false;">Sign In</a>';
+            else footer.innerHTML =
+                'Want to manage? <a href="#" onclick="switchAuthTab(\'signup\');return false;">Sign Up</a> or <a href="#" onclick="switchAuthTab(\'signin\');return false;">Sign In</a>';
+            hideAuthMessages();
+        }
+
+        function showAuthError(msg) {
+            const el = document.getElementById('auth-error');
+            el.textContent = msg;
+            el.classList.add('show');
+            document.getElementById('auth-success').classList.remove('show');
+        }
+
+        function showAuthSuccess(msg) {
+            const el = document.getElementById('auth-success');
+            el.textContent = msg;
+            el.classList.add('show');
+            document.getElementById('auth-error').classList.remove('show');
+        }
+
+        function hideAuthMessages() {
+            document.getElementById('auth-error').classList.remove('show');
+            document.getElementById('auth-success').classList.remove('show');
+        }
+
+        // ================================================================
+        //  AUTH HANDLERS
+        // ================================================================
+        async function handleSignUp(e) {
+            e.preventDefault();
+            hideAuthMessages();
+
+            const username = document.getElementById('signup-username').value.trim();
+            const password = document.getElementById('signup-password').value;
+            const kingdomName = document.getElementById('signup-kingdom').value.trim();
+            let kingdomCode = document.getElementById('signup-kingdom-code').value.trim();
+
+            if (!username || !password || !kingdomName) {
+                return showAuthError('Please fill in all fields.');
+            }
+            if (password.length < 6) {
+                return showAuthError('Password must be at least 6 characters.');
+            }
+            if (!kingdomCode || kingdomCode.length !== 4 || !/^\d{4}$/.test(kingdomCode)) {
+                return showAuthError('Kingdom Code must be exactly 4 digits (0‑9).');
+            }
+
+            try {
+                const userSnap = await db.ref('users').orderByChild('username').equalTo(username).once('value');
+                if (userSnap.exists()) return showAuthError('Username already taken.');
+
+                const kingSnap = await db.ref('kingdoms/' + kingdomCode).once('value');
+                if (kingSnap.exists()) return showAuthError('Kingdom Code already taken. Please choose another.');
+
+                const { salt, hash } = await hashPassword(password);
+                const userId = Date.now().toString(36);
+                await db.ref('users/' + userId).set({
+                    username: username,
+                    salt: salt,
+                    passwordHash: hash,
+                    kingdomCode: kingdomCode
+                });
+
+                await db.ref('kingdoms/' + kingdomCode).set({
+                    name: kingdomName || username + ' Kingdom',
+                    ownerId: userId,
+                    ownerName: username,
+                    players: []
+                });
+
+                showAuthSuccess('Account created! Your kingdom code is ' + kingdomCode);
+                currentUser = { username, kingdomCode: kingdomCode };
+                currentKingdomCode = kingdomCode;
+                loadKingdomData(kingdomCode);
+            } catch (error) {
+                showAuthError(error.message);
+            }
+        }
+
+        async function handleSignIn(e) {
+            e.preventDefault();
+            hideAuthMessages();
+            const username = document.getElementById('signin-username').value.trim();
+            const password = document.getElementById('signin-password').value;
+            if (!username || !password) return showAuthError('Please enter username and password.');
+
+            try {
+                const userSnap = await db.ref('users').orderByChild('username').equalTo(username).once('value');
+                if (!userSnap.exists()) return showAuthError('No account found with that username.');
+
+                const userId = Object.keys(userSnap.val())[0];
+                const userData = userSnap.val()[userId];
+                const isValid = await verifyPassword(password, userData.salt, userData.passwordHash);
+                if (!isValid) return showAuthError('Incorrect password.');
+
+                currentUser = { username: userData.username, kingdomCode: userData.kingdomCode };
+                currentKingdomCode = userData.kingdomCode;
+                loadKingdomData(userData.kingdomCode);
+            } catch (error) {
+                showAuthError(error.message);
+            }
+        }
+
+        async function handleGuestView(e) {
+            e.preventDefault();
+            hideAuthMessages();
+            const code = document.getElementById('guest-kingdom-code').value.trim();
+            if (!code || code.length !== 4 || !/^\d{4}$/.test(code)) {
+                return showAuthError('Please enter a valid 4‑digit code.');
+            }
+            try {
+                const snapshot = await db.ref('kingdoms/' + code).once('value');
+                const kingdom = snapshot.val();
+                if (kingdom) {
+                    isPublicView = true;
+                    currentKingdom = kingdom;
+                    currentKingdomCode = code;
+                    showPublicView(kingdom);
+                } else {
+                    showAuthError('Kingdom not found.');
+                }
+            } catch (error) {
+                showAuthError(error.message);
+            }
+        }
+
+        // ================================================================
+        //  LOAD & RENDER
+        // ================================================================
+        async function loadKingdomData(code) {
+            try {
+                const snapshot = await db.ref('kingdoms/' + code).once('value');
+                const kingdom = snapshot.val();
+                if (kingdom) {
+                    currentKingdom = kingdom;
+                    currentKingdomCode = code;
+                    isPublicView = false;
+                    showOwnerDashboard(kingdom);
+                } else {
+                    showAuthError('Kingdom data not found.');
+                }
+            } catch (error) {
+                showAuthError(error.message);
+            }
+        }
+
+        function showOwnerDashboard(kingdom) {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('dashboard-screen').classList.add('active');
+            document.getElementById('public-view-screen').classList.remove('active');
+            document.getElementById('dashboard-kingdom-name').textContent = kingdom.name || 'Kingdom';
+            document.getElementById('dashboard-username').textContent = currentUser?.username || 'User';
+            document.getElementById('dashboard-role-badge').textContent = 'Owner';
+            document.getElementById('dashboard-code-display').textContent = '🔑 ' + currentKingdomCode;
+            renderOwnerTable();
+        }
+
+        function showPublicView(kingdom) {
+            document.getElementById('auth-screen').classList.remove('active');
+            document.getElementById('dashboard-screen').classList.remove('active');
+            document.getElementById('public-view-screen').classList.add('active');
+            document.getElementById('public-kingdom-name').textContent = kingdom.name || 'Kingdom';
+            document.getElementById('public-code-display').textContent = '🔑 ' + currentKingdomCode;
+            renderPublicTable();
+        }
+
+        function exitPublicView() {
+            document.getElementById('public-view-screen').classList.remove('active');
+            document.getElementById('auth-screen').classList.add('active');
+            switchAuthTab('view');
+            isPublicView = false;
+        }
+
+        function handleLogout() {
+            if (isPublicView) {
+                exitPublicView();
+                return;
+            }
+            currentUser = null;
+            currentKingdom = null;
+            currentKingdomCode = null;
+            document.getElementById('dashboard-screen').classList.remove('active');
+            document.getElementById('auth-screen').classList.add('active');
+            switchAuthTab('signin');
+        }
+
+        // ---- Render Owner Table ----
+        function renderOwnerTable() {
+            if (!currentKingdom) return;
+            const players = currentKingdom.players || [];
+            document.getElementById('stat-players').textContent = players.length;
+            document.getElementById('table-count').textContent = `${players.length} player${players.length !== 1 ? 's' : ''}`;
+            populateFilterDropdown('filter-alliance', players);
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            const filterAlliance = document.getElementById('filter-alliance').value;
+            let filtered = [...players];
+            if (searchTerm) filtered = filtered.filter(p =>
+                p.name.toLowerCase().includes(searchTerm) ||
+                (p.alliances || []).some(tag => tag.toLowerCase().includes(searchTerm))
+            );
+            if (filterAlliance) filtered = filtered.filter(p => (p.alliances || []).includes(filterAlliance));
+            const tbody = document.getElementById('player-table-body');
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                document.getElementById('empty-state').style.display = 'block';
+                return;
+            }
+            document.getElementById('empty-state').style.display = 'none';
+            filtered.forEach((player, index) => {
+                const tr = document.createElement('tr');
+                // Build alliance list items
+                const allianceItems = (player.alliances || []).map(tag => 
+                    `<span class="alliance-item">${tag}</span>`
+                ).join('');
+                const allianceContent = allianceItems || '<span class="alliance-item" style="color:var(--text-muted);">No alliances</span>';
+                tr.innerHTML = `
+                    <td>${index+1}</td>
+                    <td><span class="player-name" onclick="openPlayerDetails('${player.id}')">${player.name}</span></td>
+                    <td>
+                        <div class="alliance-scroll-container">${allianceContent}</div>
+                    </td>
+                    <td class="table-actions">
+                        <button class="btn btn-secondary btn-sm btn-icon" onclick="openEditPlayerModal('${player.id}')">Edit</button>
+                        <button class="btn btn-danger btn-sm btn-icon" onclick="removePlayer('${player.id}')">Del</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ---- Render Public Table ----
+        function renderPublicTable() {
+            if (!currentKingdom) return;
+            const players = currentKingdom.players || [];
+            document.getElementById('public-stat-players').textContent = players.length;
+            document.getElementById('public-table-count').textContent = `${players.length} player${players.length !== 1 ? 's' : ''}`;
+            populateFilterDropdown('public-filter-alliance', players);
+            const searchTerm = document.getElementById('public-search-input').value.toLowerCase().trim();
+            const filterAlliance = document.getElementById('public-filter-alliance').value;
+            let filtered = [...players];
+            if (searchTerm) filtered = filtered.filter(p =>
+                p.name.toLowerCase().includes(searchTerm) ||
+                (p.alliances || []).some(tag => tag.toLowerCase().includes(searchTerm))
+            );
+            if (filterAlliance) filtered = filtered.filter(p => (p.alliances || []).includes(filterAlliance));
+            const tbody = document.getElementById('public-player-table-body');
+            tbody.innerHTML = '';
+            if (filtered.length === 0) {
+                document.getElementById('public-empty-state').style.display = 'block';
+                return;
+            }
+            document.getElementById('public-empty-state').style.display = 'none';
+            filtered.forEach((player, index) => {
+                const tr = document.createElement('tr');
+                const allianceItems = (player.alliances || []).map(tag => 
+                    `<span class="alliance-item">${tag}</span>`
+                ).join('');
+                const allianceContent = allianceItems || '<span class="alliance-item" style="color:var(--text-muted);">No alliances</span>';
+                tr.innerHTML = `
+                    <td>${index+1}</td>
+                    <td><span class="player-name">${player.name}</span></td>
+                    <td>
+                        <div class="alliance-scroll-container">${allianceContent}</div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function populateFilterDropdown(selectId, players) {
+            const filter = document.getElementById(selectId);
+            const currentVal = filter.value;
+            filter.innerHTML = '<option value="">All Alliances</option>';
+            const tags = new Set(players.flatMap(p => p.alliances || []));
+            tags.forEach(tag => {
+                const opt = document.createElement('option');
+                opt.value = tag;
+                opt.textContent = tag;
+                filter.appendChild(opt);
+            });
+            if (currentVal) filter.value = currentVal;
+        }
+
+        // ================================================================
+        //  PLAYER CRUD
+        // ================================================================
+        function openAddPlayerModal() {
+            editingPlayerId = null;
+            document.getElementById('player-modal-title').textContent = 'Add Player';
+            document.getElementById('player-name-input').value = '';
+            clearAllianceInputs();
+            addAllianceInput();
+            document.getElementById('player-modal').classList.add('active');
+        }
+
+        function openEditPlayerModal(playerId) {
+            const player = currentKingdom.players.find(p => p.id === playerId);
+            if (!player) return;
+            editingPlayerId = playerId;
+            document.getElementById('player-modal-title').textContent = 'Edit Player';
+            document.getElementById('player-name-input').value = player.name;
+            setAllianceInputs(player.alliances || []);
+            document.getElementById('player-modal').classList.add('active');
+        }
+
+        async function handlePlayerSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('player-name-input').value.trim();
+            const alliances = getAllianceTagsFromInputs();
+            if (!name) return;
+            let players = [...(currentKingdom.players || [])];
+            if (editingPlayerId) {
+                players = players.map(p => p.id === editingPlayerId ? { ...p, name, alliances } : p);
+            } else {
+                players.push({ id: Date.now().toString(36), name, alliances });
+            }
+            currentKingdom.players = players;
+            try {
+                await db.ref('kingdoms/' + currentKingdomCode + '/players').set(players);
+                closeModal('player-modal');
+                renderOwnerTable();
+            } catch (error) {
+                alert('Error saving: ' + error.message);
+            }
+        }
+
+        async function removePlayer(playerId) {
+            if (!confirm('Remove this player?')) return;
+            let players = currentKingdom.players.filter(p => p.id !== playerId);
+            currentKingdom.players = players;
+            try {
+                await db.ref('kingdoms/' + currentKingdomCode + '/players').set(players);
+                renderOwnerTable();
+            } catch (error) {
+                alert('Error removing: ' + error.message);
+            }
+        }
+
+        function openPlayerDetails(playerId) {
+            const player = currentKingdom.players.find(p => p.id === playerId);
+            if (!player) return;
+            document.getElementById('details-avatar').textContent = player.name.charAt(0).toUpperCase();
+            document.getElementById('details-name').textContent = player.name;
+            document.getElementById('details-id').textContent = 'ID: ' + player.id.substring(0, 10) + '…';
+            document.getElementById('details-alliances').innerHTML = (player.alliances || []).map(tag =>
+                `<span class="alliance-tag">${tag}</span>`
+            ).join('') || '<span style="color:var(--text-muted);font-size:11px;">No alliances</span>';
+            document.getElementById('details-edit-btn').style.display = 'inline-flex';
+            document.getElementById('details-edit-btn').onclick = () => {
+                closeModal('details-modal');
+                openEditPlayerModal(playerId);
+            };
+            document.getElementById('details-modal').classList.add('active');
+        }
+
+        function openEditFromDetails() { /* placeholder */ }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) overlay.classList.remove('active');
+            });
+        });
+
+        // ================================================================
+        //  EXPORT
+        // ================================================================
+        function getFilteredPlayersForExport() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+            const filterAlliance = document.getElementById('filter-alliance').value;
+            let players = currentKingdom?.players || [];
+            if (searchTerm) players = players.filter(p =>
+                p.name.toLowerCase().includes(searchTerm) ||
+                (p.alliances || []).some(tag => tag.toLowerCase().includes(searchTerm))
+            );
+            if (filterAlliance) players = players.filter(p => (p.alliances || []).includes(filterAlliance));
+            return players;
+        }
+
+        function downloadCSV() {
+            const players = getFilteredPlayersForExport();
+            const kingdomName = currentKingdom?.name || 'Kingdom';
+            let csv = '\uFEFF';
+            csv += 'Kingdom,Player Name,Alliances\n';
+            players.forEach(p => {
+                const alliances = (p.alliances || []).join(' | ') || 'None';
+                csv += `"${kingdomName}","${p.name}","${alliances}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${kingdomName}_reward_list.csv`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            document.getElementById('download-menu').classList.remove('show');
+        }
+
+        function downloadExcel() {
+            const players = getFilteredPlayersForExport();
+            const kingdomName = currentKingdom?.name || 'Kingdom';
+            let html = '<html><head><meta charset="UTF-8"></head><body>';
+            html += '<table border="1"><tr><th>#</th><th>Player Name</th><th>Alliances</th></tr>';
+            players.forEach((p, i) => {
+                const alliances = (p.alliances || []).join(', ') || 'None';
+                html += `<tr><td>${i+1}</td><td>${p.name}</td><td>${alliances}</td></tr>`;
+            });
+            html += '</table></body></html>';
+            const blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `${kingdomName}_reward_list.xls`;
+            link.click();
+            URL.revokeObjectURL(link.href);
+            document.getElementById('download-menu').classList.remove('show');
+        }
+
+        function downloadPDF() {
+            window.print();
+            document.getElementById('download-menu').classList.remove('show');
+        }
+
+        // ================================================================
+        //  INIT
+        // ================================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('auth-screen').classList.add('active');
+            switchAuthTab('signin');
+            generateRandomCode();
+        });
+    </script>
+</body>
+</html>
